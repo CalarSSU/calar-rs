@@ -1,6 +1,7 @@
 use clap::Parser;
 
-mod scratcher;
+mod models;
+mod tracto;
 
 pub type AsyncResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -9,19 +10,16 @@ pub type AsyncResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub struct Args {
     #[arg(short, long)]
     pub department: String,
-
     #[arg(short, long)]
     pub form: String,
-
     #[arg(short, long)]
     pub group: String,
-
     #[arg(short, long)]
     pub subgroup: Option<String>,
 }
 
 pub async fn validate_args(args: &Args) -> AsyncResult<()> {
-    let available_departments: Vec<String> = scratcher::get_departments()
+    let available_departments: Vec<String> = tracto::fetch_departments()
         .await?
         .departments_list
         .into_iter()
@@ -44,7 +42,7 @@ async fn main() -> AsyncResult<()> {
     let args = Args::parse();
     validate_args(&args).await?;
 
-    let s = scratcher::get_schedule(&args).await?;
+    let s = tracto::fetch_schedule(&args).await?;
 
     println!("{s:#?}");
 
