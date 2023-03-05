@@ -1,27 +1,29 @@
 use clap::Parser;
+use std::{fs::File, io::Write};
 
-mod scratcher;
+mod calendar;
+mod models;
+mod tracto;
 
-pub type AsyncResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     #[arg(short, long)]
     pub department: String,
-
     #[arg(short, long)]
     pub form: String,
-
     #[arg(short, long)]
     pub group: String,
-
+    #[arg(short, long, num_args(0..))]
+    pub subgroups: Vec<String>,
     #[arg(short, long)]
-    pub subgroup: Option<String>,
+    pub translator: bool,
 }
 
-pub async fn validate_args(args: &Args) -> AsyncResult<()> {
-    let available_departments: Vec<String> = scratcher::get_departments()
+pub async fn validate_args(args: &Args) -> Result<()> {
+    let available_departments: Vec<String> = tracto::fetch_departments()
         .await?
         .departments_list
         .into_iter()
@@ -40,13 +42,22 @@ pub async fn validate_args(args: &Args) -> AsyncResult<()> {
 }
 
 #[tokio::main]
-async fn main() -> AsyncResult<()> {
+async fn main() -> Result<()> {
     let args = Args::parse();
     validate_args(&args).await?;
 
-    let s = scratcher::get_schedule(&args).await?;
+    let schedule = tracto::fetch_schedule(&args).await?;
+    let calendar = schedule.to_ical(&args);
 
-    println!("{s:#?}");
+    let mut file = File::create(format!(
+        "{}-{}-{}-{}{}.ics",
+        args.department,
+        args.form,
+        args.group,
+        args.subgroups.join("_"),
+        if args.translator { "-t" } else { "" }
+    ))?;
+    file.write_all(calendar.to_string().as_bytes())?;
 
     Ok(())
 }
