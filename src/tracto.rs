@@ -33,5 +33,6 @@ pub fn _find_subgroups(schedule: &Schedule) -> Vec<String> {
         .filter(|sg| !sg.is_empty())
         .collect::<Vec<_>>();
     subgroups.sort_unstable();
+    subgroups.dedup();
     subgroups
 }

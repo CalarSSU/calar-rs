@@ -1,4 +1,5 @@
 use crate::models::*;
+use crate::Args;
 
 use chrono::prelude::*;
 use chrono_tz::Europe::Saratov;
@@ -10,10 +11,16 @@ const SEM_END_MONTH: u32 = 5;
 const SEM_END_DAY: u32 = 31;
 
 impl Schedule {
-    pub fn to_ical(&self) -> Calendar {
+    pub fn to_ical(&self, cx: &Args) -> Calendar {
         let mut cal = Calendar::new();
         for lesson in &self.lessons {
-            cal.push(lesson.to_event());
+            if lesson.sub_group.is_empty()
+                || cx
+                    .subgroups
+                    .contains(&lesson.sub_group.trim().replace(" ", "_").to_string())
+            {
+                cal.push(lesson.to_event());
+            }
         }
 
         cal.done()
