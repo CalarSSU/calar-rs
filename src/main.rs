@@ -1,9 +1,11 @@
 use clap::Parser;
+use std::{fs::File, io::Write};
 
+mod calendar;
 mod models;
 mod tracto;
 
-pub type AsyncResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -14,11 +16,11 @@ pub struct Args {
     pub form: String,
     #[arg(short, long)]
     pub group: String,
-    #[arg(short, long)]
-    pub subgroup: Option<String>,
+    #[arg(short, long, num_args(0..))]
+    pub subgroups: Vec<String>,
 }
 
-pub async fn validate_args(args: &Args) -> AsyncResult<()> {
+pub async fn validate_args(args: &Args) -> Result<()> {
     let available_departments: Vec<String> = tracto::fetch_departments()
         .await?
         .departments_list
@@ -38,13 +40,22 @@ pub async fn validate_args(args: &Args) -> AsyncResult<()> {
 }
 
 #[tokio::main]
-async fn main() -> AsyncResult<()> {
+async fn main() -> Result<()> {
     let args = Args::parse();
     validate_args(&args).await?;
 
-    let s = tracto::fetch_schedule(&args).await?;
+    let schedule = tracto::fetch_schedule(&args).await?;
+    let calendar = schedule.to_ical();
 
-    println!("{s:#?}");
+    let filename = format!(
+        "{}_{}_{}_{}.ics",
+        args.department,
+        args.form,
+        args.group,
+        args.subgroups.join("_")
+    );
+    let mut file = File::create(filename)?;
+    file.write_fmt(format_args!("{calendar}"))?;
 
     Ok(())
 }

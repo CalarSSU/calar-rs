@@ -1,9 +1,9 @@
 use crate::models::*;
-use crate::{Args, AsyncResult};
+use crate::{Args, Result};
 
 const TRACTO_PREFIX: &str = "https://scribabot.tk/api/v1.0";
 
-pub async fn fetch_schedule(ctx: &Args) -> AsyncResult<Schedule> {
+pub async fn fetch_schedule(ctx: &Args) -> Result<Schedule> {
     let client = reqwest::Client::new();
     let url = format!(
         "{TRACTO_PREFIX}/schedule/{}/{}/{}",
@@ -14,7 +14,7 @@ pub async fn fetch_schedule(ctx: &Args) -> AsyncResult<Schedule> {
     Ok(schedule)
 }
 
-pub async fn fetch_departments() -> AsyncResult<DepartmentsList> {
+pub async fn fetch_departments() -> Result<DepartmentsList> {
     let client = reqwest::Client::new();
     let departments = client
         .get(format!("{TRACTO_PREFIX}/departments"))
