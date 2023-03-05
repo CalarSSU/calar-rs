@@ -31,7 +31,7 @@ pub async fn validate_args(args: &Args) -> AsyncResult<()> {
     if !available_departments.contains(&args.department) {
         return Err(String::from("Incorrect department").into());
     }
-    
+
     if !vec!["full", "extramural"].contains(&args.form.as_str()) {
         return Err(String::from("Incorrect education form").into());
     }

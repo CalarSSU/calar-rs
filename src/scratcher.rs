@@ -87,8 +87,8 @@ const TRACTO_PREFIX: &str = "https://scribabot.tk/api/v1.0";
 pub async fn get_schedule(ctx: &Args) -> AsyncResult<Schedule> {
     let client = reqwest::Client::new();
     let url = format!(
-        "{}/schedule/{}/{}/{}",
-        TRACTO_PREFIX, ctx.form, ctx.department, ctx.group
+        "{TRACTO_PREFIX}/schedule/{}/{}/{}",
+        ctx.form, ctx.department, ctx.group
     );
     let schedule = client.get(url).send().await?.json::<Schedule>().await?;
 
@@ -97,12 +97,22 @@ pub async fn get_schedule(ctx: &Args) -> AsyncResult<Schedule> {
 
 pub async fn get_departments() -> AsyncResult<DepartmentsList> {
     let client = reqwest::Client::new();
-    let url = format!("{}/departments", TRACTO_PREFIX);
     let departments = client
-        .get(url.clone())
+        .get(format!("{TRACTO_PREFIX}/departments"))
         .send()
         .await?
         .json::<DepartmentsList>()
         .await?;
     Ok(departments)
+}
+
+pub fn _find_subgroups(schedule: &Schedule) -> Vec<String> {
+    let mut subgroups = schedule
+        .lessons
+        .iter()
+        .map(|l| l.sub_group.trim().to_string())
+        .filter(|sg| !sg.is_empty())
+        .collect::<Vec<_>>();
+    subgroups.sort_unstable();
+    subgroups
 }
