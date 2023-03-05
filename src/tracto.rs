@@ -3,11 +3,11 @@ use crate::{Args, Result};
 
 const TRACTO_PREFIX: &str = "https://scribabot.tk/api/v1.0";
 
-pub async fn fetch_schedule(ctx: &Args) -> Result<Schedule> {
+pub async fn fetch_schedule(cx: &Args) -> Result<Schedule> {
     let client = reqwest::Client::new();
     let url = format!(
         "{TRACTO_PREFIX}/schedule/{}/{}/{}",
-        ctx.form, ctx.department, ctx.group
+        cx.form, cx.department, cx.group
     );
     let schedule = client.get(url).send().await?.json::<Schedule>().await?;
 

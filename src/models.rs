@@ -27,6 +27,16 @@ pub struct Lesson {
     pub end_timestamp: Option<u32>,
 }
 
+impl Lesson {
+    pub fn summary(&self) -> String {
+        let type_letter = match self.lesson_type.as_str() {
+            "LECTURE" => 'Л',
+            _ => 'П',
+        };
+        format!("{} ({})", self.name, type_letter)
+    }
+}
+
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Department {
@@ -72,6 +82,12 @@ pub struct Teacher {
     pub surname: String,
     pub name: String,
     pub patronymic: String,
+}
+
+impl Teacher {
+    pub fn full(&self) -> String {
+        format!("{} {} {}", self.surname, self.name, self.patronymic)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

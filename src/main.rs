@@ -47,15 +47,14 @@ async fn main() -> Result<()> {
     let schedule = tracto::fetch_schedule(&args).await?;
     let calendar = schedule.to_ical();
 
-    let filename = format!(
+    let mut file = File::create(format!(
         "{}_{}_{}_{}.ics",
         args.department,
         args.form,
         args.group,
         args.subgroups.join("_")
-    );
-    let mut file = File::create(filename)?;
-    file.write_fmt(format_args!("{calendar}"))?;
+    ))?;
+    file.write_all(calendar.to_string().as_bytes())?;
 
     Ok(())
 }
