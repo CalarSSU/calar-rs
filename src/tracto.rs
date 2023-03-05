@@ -36,3 +36,57 @@ pub fn _find_subgroups(schedule: &Schedule) -> Vec<String> {
     subgroups.dedup();
     subgroups
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn try_fetch_departments() -> Result<()> {
+        fetch_departments().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn try_fetch_schedule_1() -> Result<()> {
+        let args = Args {
+            department: String::from("knt"),
+            form: String::from("full"),
+            group: String::from("351"),
+            subgroups: vec![String::from("1_под."), String::from("цифровая_кафедра")],
+            translator: false,
+        };
+        fetch_schedule(&args).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn try_fetch_schedule_2() -> Result<()> {
+        let args = Args {
+            department: String::from("knt"),
+            form: String::from("full"),
+            group: String::from("351"),
+            subgroups: Vec::new(),
+            translator: false,
+        };
+        fetch_schedule(&args).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn try_fetch_schedule_3() -> Result<()> {
+        let args = Args {
+            department: String::from("knt"),
+            form: String::from("full"),
+            group: String::from("351"),
+            subgroups: vec![
+                String::from("2_под."),
+                String::from("цифровая_кафедра"),
+                String::from("анг.ст.3"),
+            ],
+            translator: true,
+        };
+        fetch_schedule(&args).await?;
+        Ok(())
+    }
+}
