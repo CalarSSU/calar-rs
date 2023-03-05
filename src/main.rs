@@ -18,6 +18,8 @@ pub struct Args {
     pub group: String,
     #[arg(short, long, num_args(0..))]
     pub subgroups: Vec<String>,
+    #[arg(short, long)]
+    pub translator: bool
 }
 
 pub async fn validate_args(args: &Args) -> Result<()> {
@@ -48,14 +50,15 @@ async fn main() -> Result<()> {
     let calendar = schedule.to_ical(&args);
 
     let mut file = File::create(format!(
-        "{}_{}_{}_{}.ics",
+        "{}_{}_{}_{}_{}.ics",
         args.department,
         args.form,
         args.group,
-        args.subgroups.join("_")
+        args.subgroups.join("_"),
+        args.translator.to_string()
     ))?;
     file.write_all(calendar.to_string().as_bytes())?;
 
-    println!("{schedule:#?}");
+    // println!("{schedule:#?}");
     Ok(())
 }

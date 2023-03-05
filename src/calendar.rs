@@ -14,10 +14,11 @@ impl Schedule {
     pub fn to_ical(&self, cx: &Args) -> Calendar {
         let mut cal = Calendar::new();
         for lesson in &self.lessons {
-            if lesson.sub_group.is_empty()
-                || cx
-                    .subgroups
-                    .contains(&lesson.sub_group.trim().replace(" ", "_").to_string())
+            let same_subgroup = cx
+                .subgroups
+                .contains(&lesson.sub_group.trim().replace(' ', "_").to_string());
+            if (lesson.sub_group.is_empty() || same_subgroup)
+                && (!lesson.name.contains("(перевод.)") || cx.translator)
             {
                 cal.push(lesson.to_event());
             }
