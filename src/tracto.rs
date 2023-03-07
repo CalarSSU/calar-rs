@@ -1,11 +1,10 @@
-use crate::{models::*, Config};
-use crate::{Args, Result};
+use crate::{models::*, Config, Request, Result};
 
-pub async fn fetch_schedule(cfg: &Config, cx: &Args) -> Result<Schedule> {
+pub async fn fetch_schedule(cfg: &Config, request: &Request) -> Result<Schedule> {
     let client = reqwest::Client::new();
     let url = format!(
         "{}/schedule/{}/{}/{}",
-        cfg.tracto_prefix, cx.form, cx.department, cx.group
+        cfg.tracto_prefix, request.form, request.department, request.group
     );
     let schedule = client.get(url).send().await?.json::<Schedule>().await?;
 
@@ -49,35 +48,35 @@ mod tests {
     #[tokio::test]
     async fn try_fetch_schedule_1() -> Result<()> {
         let cfg = Config::default();
-        let args = Args {
+        let request = Request {
             department: String::from("knt"),
             form: String::from("full"),
             group: String::from("351"),
             subgroups: vec![String::from("1_под."), String::from("цифровая_кафедра")],
             translator: false,
         };
-        fetch_schedule(&cfg, &args).await?;
+        fetch_schedule(&cfg, &request).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn try_fetch_schedule_2() -> Result<()> {
         let cfg = Config::default();
-        let args = Args {
+        let request = Request {
             department: String::from("knt"),
             form: String::from("full"),
             group: String::from("351"),
             subgroups: Vec::new(),
             translator: false,
         };
-        fetch_schedule(&cfg, &args).await?;
+        fetch_schedule(&cfg, &request).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn try_fetch_schedule_3() -> Result<()> {
         let cfg = Config::default();
-        let args = Args {
+        let request = Request {
             department: String::from("knt"),
             form: String::from("full"),
             group: String::from("351"),
@@ -88,7 +87,7 @@ mod tests {
             ],
             translator: true,
         };
-        fetch_schedule(&cfg, &args).await?;
+        fetch_schedule(&cfg, &request).await?;
         Ok(())
     }
 }

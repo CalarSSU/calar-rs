@@ -34,7 +34,7 @@ impl Default for Config {
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-pub struct Args {
+pub struct Request {
     #[arg(short, long)]
     pub department: String,
     #[arg(short, long)]
@@ -47,7 +47,7 @@ pub struct Args {
     pub translator: bool,
 }
 
-pub async fn validate_args(cfg: &Config, args: &Args) -> Result<()> {
+pub async fn validate_request(cfg: &Config, request: &Request) -> Result<()> {
     let available_departments: Vec<String> = tracto::fetch_departments(cfg)
         .await?
         .departments_list
@@ -55,11 +55,11 @@ pub async fn validate_args(cfg: &Config, args: &Args) -> Result<()> {
         .map(|x| x.url)
         .collect();
 
-    if !available_departments.contains(&args.department) {
+    if !available_departments.contains(&request.department) {
         return Err(String::from("Incorrect department").into());
     }
 
-    if !vec!["full", "extramural"].contains(&args.form.as_str()) {
+    if !vec!["full", "extramural"].contains(&request.form.as_str()) {
         return Err(String::from("Incorrect education form").into());
     }
 
@@ -69,19 +69,19 @@ pub async fn validate_args(cfg: &Config, args: &Args) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cfg: Config = confy::load(APP_NAME, CONFIG_FILE)?;
-    let args = Args::parse();
-    validate_args(&cfg, &args).await?;
+    let request = Request::parse();
+    validate_request(&cfg, &request).await?;
 
-    let schedule = tracto::fetch_schedule(&cfg, &args).await?;
-    let calendar = schedule.to_ical(&cfg, &args);
+    let schedule = tracto::fetch_schedule(&cfg, &request).await?;
+    let calendar = schedule.to_ical(&cfg, &request);
 
     let mut file = File::create(format!(
         "{}-{}-{}-{}{}.ics",
-        args.department,
-        args.form,
-        args.group,
-        args.subgroups.join("_"),
-        if args.translator { "-t" } else { "" }
+        request.department,
+        request.form,
+        request.group,
+        request.subgroups.join("_"),
+        if request.translator { "-t" } else { "" }
     ))?;
     file.write_all(calendar.to_string().as_bytes())?;
 

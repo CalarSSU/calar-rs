@@ -1,19 +1,18 @@
-use crate::Args;
-use crate::{models::*, Config};
+use crate::{models::*, Config, Request};
 
 use chrono::prelude::*;
 use chrono_tz::Europe::Saratov;
 use icalendar::*;
 
 impl Schedule {
-    pub fn to_ical(&self, cfg: &Config, cx: &Args) -> Calendar {
+    pub fn to_ical(&self, cfg: &Config, request: &Request) -> Calendar {
         let mut cal = Calendar::new();
         for lesson in &self.lessons {
-            let same_subgroup = cx
+            let same_subgroup = request
                 .subgroups
                 .contains(&lesson.sub_group.trim().replace(' ', "_").to_string());
             if (lesson.sub_group.is_empty() || same_subgroup)
-                && (!lesson.name.contains("(перевод.)") || cx.translator)
+                && (!lesson.name.contains("(перевод.)") || request.translator)
             {
                 cal.push(lesson.to_event(cfg));
             }
