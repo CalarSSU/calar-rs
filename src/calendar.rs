@@ -1,4 +1,4 @@
-use crate::{models::*, Config, Request};
+use crate::{config::*, models::*, Request};
 
 use chrono::prelude::*;
 use chrono_tz::Europe::Saratov;
@@ -12,7 +12,7 @@ impl Schedule {
                 .subgroups
                 .contains(&lesson.sub_group.trim().replace(' ', "_").to_string());
             if (lesson.sub_group.is_empty() || same_subgroup)
-                && (!lesson.name.contains("(перевод.)") || request.translator)
+                && (!lesson.name.contains(&cfg.translator_substr) || request.translator)
             {
                 cal.push(lesson.to_event(cfg));
             }
