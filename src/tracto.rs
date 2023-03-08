@@ -1,23 +1,20 @@
-use crate::models::*;
-use crate::{Args, Result};
+use crate::{models::*, Config, Request, Result};
 
-const TRACTO_PREFIX: &str = "https://scribabot.tk/api/v1.0";
-
-pub async fn fetch_schedule(cx: &Args) -> Result<Schedule> {
+pub async fn fetch_schedule(cfg: &Config, request: &Request) -> Result<Schedule> {
     let client = reqwest::Client::new();
     let url = format!(
-        "{TRACTO_PREFIX}/schedule/{}/{}/{}",
-        cx.form, cx.department, cx.group
+        "{}/schedule/{}/{}/{}",
+        cfg.tracto_prefix, request.form, request.department, request.group
     );
     let schedule = client.get(url).send().await?.json::<Schedule>().await?;
 
     Ok(schedule)
 }
 
-pub async fn fetch_departments() -> Result<DepartmentsList> {
+pub async fn fetch_departments(cfg: &Config) -> Result<DepartmentsList> {
     let client = reqwest::Client::new();
     let departments = client
-        .get(format!("{TRACTO_PREFIX}/departments"))
+        .get(format!("{}/departments", cfg.tracto_prefix))
         .send()
         .await?
         .json::<DepartmentsList>()
@@ -43,39 +40,43 @@ mod tests {
 
     #[tokio::test]
     async fn try_fetch_departments() -> Result<()> {
-        fetch_departments().await?;
+        let cfg = Config::default();
+        fetch_departments(&cfg).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn try_fetch_schedule_1() -> Result<()> {
-        let args = Args {
+        let cfg = Config::default();
+        let request = Request {
             department: String::from("knt"),
             form: String::from("full"),
             group: String::from("351"),
             subgroups: vec![String::from("1_под."), String::from("цифровая_кафедра")],
             translator: false,
         };
-        fetch_schedule(&args).await?;
+        fetch_schedule(&cfg, &request).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn try_fetch_schedule_2() -> Result<()> {
-        let args = Args {
+        let cfg = Config::default();
+        let request = Request {
             department: String::from("knt"),
             form: String::from("full"),
             group: String::from("351"),
             subgroups: Vec::new(),
             translator: false,
         };
-        fetch_schedule(&args).await?;
+        fetch_schedule(&cfg, &request).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn try_fetch_schedule_3() -> Result<()> {
-        let args = Args {
+        let cfg = Config::default();
+        let request = Request {
             department: String::from("knt"),
             form: String::from("full"),
             group: String::from("351"),
@@ -86,7 +87,7 @@ mod tests {
             ],
             translator: true,
         };
-        fetch_schedule(&args).await?;
+        fetch_schedule(&cfg, &request).await?;
         Ok(())
     }
 }

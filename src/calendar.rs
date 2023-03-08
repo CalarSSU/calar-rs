@@ -1,26 +1,20 @@
-use crate::models::*;
-use crate::Args;
+use crate::{config::*, models::*, Request};
 
 use chrono::prelude::*;
 use chrono_tz::Europe::Saratov;
 use icalendar::*;
 
-const SEM_START_MONTH: u32 = 2;
-const SEM_START_DAY: u32 = 6;
-const SEM_END_MONTH: u32 = 5;
-const SEM_END_DAY: u32 = 31;
-
 impl Schedule {
-    pub fn to_ical(&self, cx: &Args) -> Calendar {
+    pub fn to_ical(&self, cfg: &Config, request: &Request) -> Calendar {
         let mut cal = Calendar::new();
         for lesson in &self.lessons {
-            let same_subgroup = cx
+            let same_subgroup = request
                 .subgroups
                 .contains(&lesson.sub_group.trim().replace(' ', "_").to_string());
             if (lesson.sub_group.is_empty() || same_subgroup)
-                && (!lesson.name.contains("(перевод.)") || cx.translator)
+                && (!lesson.name.contains(&cfg.translator_substr) || request.translator)
             {
-                cal.push(lesson.to_event());
+                cal.push(lesson.to_event(cfg));
             }
         }
 
@@ -29,13 +23,13 @@ impl Schedule {
 }
 
 impl Lesson {
-    fn to_event(&self) -> Event {
+    fn to_event(&self, cfg: &Config) -> Event {
         let cur_year = Utc::now().with_timezone(&Saratov).date_naive().year();
         let mut event_start = Saratov
             .with_ymd_and_hms(
                 cur_year,
-                SEM_START_MONTH,
-                SEM_START_DAY + self.day.day_number - 1,
+                cfg.semester.start_md.0,
+                cfg.semester.start_md.1 + self.day.day_number - 1,
                 self.lesson_time.hour_start,
                 self.lesson_time.minute_start,
                 0,
@@ -44,8 +38,8 @@ impl Lesson {
         let mut event_end = Saratov
             .with_ymd_and_hms(
                 cur_year,
-                SEM_START_MONTH,
-                SEM_START_DAY + self.day.day_number - 1,
+                cfg.semester.start_md.0,
+                cfg.semester.start_md.1 + self.day.day_number - 1,
                 self.lesson_time.hour_end,
                 self.lesson_time.minute_end,
                 0,
@@ -59,19 +53,23 @@ impl Lesson {
             "FULL" => 1,
             _ => 2,
         };
-        let rrule_end = NaiveDate::from_ymd_opt(cur_year, SEM_END_MONTH, SEM_END_DAY)
-            .unwrap()
-            .format("%Y%m%dT235959")
-            .to_string();
+        let rrule_end =
+            NaiveDate::from_ymd_opt(cur_year, cfg.semester.end_md.0, cfg.semester.end_md.1)
+                .unwrap()
+                .format("%Y%m%dT235959")
+                .to_string();
         let rrule = format!("FREQ=WEEKLY;INTERVAL={interval};UNTIL={rrule_end}");
 
         // This logic below uses the fact that every odd week is NOM
         // and every even week should be DENOM
-        let first_week_of_sem =
-            chrono::NaiveDate::from_ymd_opt(cur_year, SEM_START_MONTH, SEM_START_DAY)
-                .unwrap()
-                .iso_week()
-                .week();
+        let first_week_of_sem = chrono::NaiveDate::from_ymd_opt(
+            cur_year,
+            cfg.semester.start_md.0,
+            cfg.semester.start_md.1,
+        )
+        .unwrap()
+        .iso_week()
+        .week();
         if first_week_of_sem % 2 == 0 && self.week_type == "NOM"
             || first_week_of_sem % 2 == 1 && self.week_type == "DENOM"
         {
