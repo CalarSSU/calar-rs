@@ -1,34 +1,80 @@
 use clap::Parser;
+use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write};
+use std::{
+    fs::{create_dir_all, File},
+    io::{Read, Write},
+};
 
 mod calendar;
 mod models;
 mod tracto;
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
+const QUALIFIER: &str = "dev";
 const APP_NAME: &str = "calar";
-const CONFIG_FILE: &str = "config";
+const ORG_NAME: &str = "calar";
+const CONFIG_FILE: &str = "config.toml";
+
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub tracto_prefix: String,
-    pub semester_start_m: u32,
-    pub semester_start_d: u32,
-    pub semester_end_m: u32,
-    pub semester_end_d: u32,
+    pub semester: Semester,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Semester {
+    start_md: (u32, u32),
+    end_md: (u32, u32),
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             tracto_prefix: String::from("https://scribabot.tk/api/v1.0"),
-            semester_start_m: 2,
-            semester_start_d: 6,
-            semester_end_m: 5,
-            semester_end_d: 31,
+            semester: Semester {
+                start_md: (2, 6),
+                end_md: (5, 31),
+            },
         }
+    }
+}
+
+impl Config {
+    pub fn from_config_dir() -> Result<Config> {
+        let proj_dirs = ProjectDirs::from(QUALIFIER, ORG_NAME, APP_NAME)
+            .expect("No valid config directory could be retrieved from the operating system");
+        let config_file = proj_dirs.config_dir().join(CONFIG_FILE);
+
+        let mut config_file = match File::open(config_file) {
+            Ok(file) => file,
+            Err(_) => {
+                let cfg = Config::default();
+                cfg.dump_to_config_dir()?;
+                return Ok(cfg);
+            }
+        };
+
+        let mut config_content = String::new();
+        config_file.read_to_string(&mut config_content)?;
+
+        Ok(toml::from_str(&config_content)?)
+    }
+
+    pub fn dump_to_config_dir(&self) -> Result<()> {
+        let serialized = toml::to_string(self)?;
+
+        let proj_dirs = ProjectDirs::from("dev", "calar", APP_NAME)
+            .expect("No valid config directory could be retrieved from the operating system");
+        let config_dir = proj_dirs.config_dir();
+        create_dir_all(config_dir)?;
+        let config_file = config_dir.join(CONFIG_FILE);
+
+        let mut config_file = File::create(config_file)?;
+        config_file.write_all(serialized.as_bytes())?;
+
+        Ok(())
     }
 }
 
@@ -68,7 +114,7 @@ pub async fn validate_request(cfg: &Config, request: &Request) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cfg: Config = confy::load(APP_NAME, CONFIG_FILE)?;
+    let cfg = Config::from_config_dir()?;
     let request = Request::parse();
     validate_request(&cfg, &request).await?;
 

@@ -28,8 +28,8 @@ impl Lesson {
         let mut event_start = Saratov
             .with_ymd_and_hms(
                 cur_year,
-                cfg.semester_start_m,
-                cfg.semester_start_d + self.day.day_number - 1,
+                cfg.semester.start_md.0,
+                cfg.semester.start_md.1 + self.day.day_number - 1,
                 self.lesson_time.hour_start,
                 self.lesson_time.minute_start,
                 0,
@@ -38,8 +38,8 @@ impl Lesson {
         let mut event_end = Saratov
             .with_ymd_and_hms(
                 cur_year,
-                cfg.semester_start_m,
-                cfg.semester_start_d + self.day.day_number - 1,
+                cfg.semester.start_md.0,
+                cfg.semester.start_md.1 + self.day.day_number - 1,
                 self.lesson_time.hour_end,
                 self.lesson_time.minute_end,
                 0,
@@ -53,19 +53,23 @@ impl Lesson {
             "FULL" => 1,
             _ => 2,
         };
-        let rrule_end = NaiveDate::from_ymd_opt(cur_year, cfg.semester_end_m, cfg.semester_end_d)
-            .unwrap()
-            .format("%Y%m%dT235959")
-            .to_string();
+        let rrule_end =
+            NaiveDate::from_ymd_opt(cur_year, cfg.semester.end_md.0, cfg.semester.end_md.1)
+                .unwrap()
+                .format("%Y%m%dT235959")
+                .to_string();
         let rrule = format!("FREQ=WEEKLY;INTERVAL={interval};UNTIL={rrule_end}");
 
         // This logic below uses the fact that every odd week is NOM
         // and every even week should be DENOM
-        let first_week_of_sem =
-            chrono::NaiveDate::from_ymd_opt(cur_year, cfg.semester_start_m, cfg.semester_start_d)
-                .unwrap()
-                .iso_week()
-                .week();
+        let first_week_of_sem = chrono::NaiveDate::from_ymd_opt(
+            cur_year,
+            cfg.semester.start_md.0,
+            cfg.semester.start_md.1,
+        )
+        .unwrap()
+        .iso_week()
+        .week();
         if first_week_of_sem % 2 == 0 && self.week_type == "NOM"
             || first_week_of_sem % 2 == 1 && self.week_type == "DENOM"
         {
