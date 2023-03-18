@@ -11,14 +11,15 @@ const CONFIG_FILE: &str = "config.toml";
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    pub app_name: String,
     pub tracto_prefix: String,
     pub translator_substr: String,
     pub semester: Semester,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Semester {
     pub end_md: (u32, u32),
     pub start_md: (u32, u32),
@@ -27,6 +28,7 @@ pub struct Semester {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            app_name: String::from(APP_NAME),
             tracto_prefix: String::from("https://scribabot.tk/api/v1.0"),
             translator_substr: String::from("(перевод.)"),
             semester: Semester {

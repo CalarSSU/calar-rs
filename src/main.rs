@@ -39,24 +39,24 @@ pub struct Request {
     pub translator: bool,
 }
 
-#[tokio::main]
+#[actix_web::main]
 async fn main() -> Result<()> {
     let cfg = Config::from_config_dir()?;
     let app = Cli::parse();
 
     match app.command {
-        Command::Single(req) => make_single_request(&cfg, req).await?,
-        Command::Server => server::run_server(&cfg).await?,
-    };
+        Command::Single(req) => make_single_request(cfg, req).await?,
+        Command::Server => server::run_server(cfg).await?,
+    }
 
     Ok(())
 }
 
-async fn make_single_request(cfg: &Config, req: Request) -> Result<()> {
-    validate_request(cfg, &req).await?;
+async fn make_single_request(cfg: Config, req: Request) -> Result<()> {
+    validate_request(&cfg, &req).await?;
 
-    let schedule = tracto::fetch_schedule(cfg, &req).await?;
-    let calendar = schedule.to_ical(cfg, &req);
+    let schedule = tracto::fetch_schedule(&cfg, &req).await?;
+    let calendar = schedule.to_ical(&cfg, &req);
 
     let mut file = File::create(format!(
         "{}-{}-{}-{}{}.ics",

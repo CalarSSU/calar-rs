@@ -8,6 +8,7 @@ description = "Saratov State University schedule in iCalendar format"
 homepage = "https://calar.ru/"
 
 [dependencies]
+actix-web = "4.3.1"
 chrono = "0.4.23"
 chrono-tz = "0.8.1"
 clap = { version = "4.1.8", features = ["derive"] }
