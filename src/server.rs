@@ -1,13 +1,9 @@
 use crate::{config, tracto, validate_request, Config, Request};
-use actix_files::NamedFile;
-use actix_web::{
-    error, get,
-    http::{header::ContentType, StatusCode},
-    web, App, HttpResponse, HttpServer, Responder,
-};
 use icalendar::Calendar;
+
+use actix_web::{get, web};
 use serde::Deserialize;
-use std::{fs::File, io::Write, path::PathBuf};
+use std::{io::Write, path::PathBuf};
 
 #[derive(Debug, thiserror::Error)]
 enum ServerError {
@@ -18,17 +14,17 @@ enum ServerError {
     BadRequest { msg: String },
 }
 
-impl error::ResponseError for ServerError {
-    fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(self.status_code())
-            .insert_header(ContentType::html())
+impl actix_web::error::ResponseError for ServerError {
+    fn error_response(&self) -> actix_web::HttpResponse {
+        actix_web::HttpResponse::build(self.status_code())
+            .insert_header(actix_web::http::header::ContentType::html())
             .body(self.to_string())
     }
 
-    fn status_code(&self) -> StatusCode {
+    fn status_code(&self) -> actix_web::http::StatusCode {
         match *self {
-            ServerError::InternalError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
-            ServerError::BadRequest { .. } => StatusCode::BAD_REQUEST,
+            ServerError::InternalError { .. } => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+            ServerError::BadRequest { .. } => actix_web::http::StatusCode::BAD_REQUEST,
         }
     }
 }
@@ -46,8 +42,8 @@ struct OptParams {
 }
 
 pub async fn run_server(cfg: Config) -> std::io::Result<()> {
-    HttpServer::new(move || {
-        App::new()
+    actix_web::HttpServer::new(move || {
+        actix_web::App::new()
             .app_data(web::Data::new(cfg.clone()))
             .service(index_handler)
             .service(request_cal_handler)
@@ -58,7 +54,7 @@ pub async fn run_server(cfg: Config) -> std::io::Result<()> {
 }
 
 #[get("/")]
-async fn index_handler(cfg: web::Data<Config>) -> impl Responder {
+async fn index_handler(cfg: web::Data<Config>) -> String {
     format!("{} is up!", cfg.app_name)
 }
 
@@ -92,7 +88,7 @@ async fn request_cal_handler(
     let calendar = schedule.to_ical(&cfg, &req);
     let file_path = save_to_cache(&req, calendar)?;
 
-    Ok(NamedFile::open(file_path)?)
+    Ok(actix_files::NamedFile::open(file_path)?)
 }
 
 fn save_to_cache(req: &Request, calendar: Calendar) -> Result<PathBuf, ServerError> {
@@ -109,7 +105,7 @@ fn save_to_cache(req: &Request, calendar: Calendar) -> Result<PathBuf, ServerErr
     );
     let file_path = proj_dirs.cache_dir().join(filename);
 
-    let mut file = File::create(file_path.clone())?;
+    let mut file = std::fs::File::create(file_path.clone())?;
     file.write_all(calendar.to_string().as_bytes())?;
 
     Ok(file_path)
