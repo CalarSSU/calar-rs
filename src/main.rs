@@ -42,9 +42,9 @@ pub struct Request {
 #[actix_web::main]
 async fn main() -> Result<()> {
     let cfg = Config::from_config_dir()?;
-    let app = Cli::parse();
+    let cli = Cli::parse();
 
-    match app.command {
+    match cli.command {
         Command::Single(req) => make_single_request(cfg, req).await?,
         Command::Server => server::run_server(cfg).await?,
     }
