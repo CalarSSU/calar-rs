@@ -38,14 +38,14 @@ pub fn _find_subgroups(schedule: &Schedule) -> Vec<String> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn try_fetch_departments() -> Result<()> {
         let cfg = Config::default();
         fetch_departments(&cfg).await?;
         Ok(())
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn try_fetch_schedule_1() -> Result<()> {
         let cfg = Config::default();
         let request = Request {
@@ -59,7 +59,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn try_fetch_schedule_2() -> Result<()> {
         let cfg = Config::default();
         let request = Request {
@@ -73,7 +73,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn try_fetch_schedule_3() -> Result<()> {
         let cfg = Config::default();
         let request = Request {

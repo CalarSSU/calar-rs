@@ -10,8 +10,9 @@ mod tracto;
 use config::*;
 
 #[derive(Debug, Parser)]
-#[clap(name = "my-app", version)]
 pub struct Cli {
+    #[arg(long)]
+    prune: bool,
     #[clap(subcommand)]
     command: Command,
 }
@@ -46,7 +47,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Single(req) => make_single_request(cfg, req).await?,
-        Command::Server => server::run_server(cfg).await?,
+        Command::Server { .. } => server::run_server(cfg, cli.prune).await?,
     }
 
     Ok(())

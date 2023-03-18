@@ -41,14 +41,20 @@ struct OptParams {
     translator: Option<bool>,
 }
 
-pub async fn run_server(cfg: Config) -> std::io::Result<()> {
+pub async fn run_server(cfg: Config, prune: bool) -> std::io::Result<()> {
+    if prune {
+        std::fs::remove_dir_all(get_cache_dir())?;
+    }
+
+    let (addr, port) = (cfg.addr.clone(), cfg.port);
+
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .app_data(web::Data::new(cfg.clone()))
             .service(index_handler)
             .service(request_cal_handler)
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind((addr, port))?
     .run()
     .await
 }
@@ -70,7 +76,6 @@ async fn request_cal_handler(
         None => Vec::new(),
         Some(s) => serde_json::from_str(s.as_str()).unwrap(),
     };
-
     let req = Request {
         department,
         form,
@@ -78,35 +83,59 @@ async fn request_cal_handler(
         translator,
         subgroups,
     };
+
     if let Err(e) = validate_request(&cfg, &req).await {
         return Err(ServerError::BadRequest { msg: e.to_string() });
     };
 
-    let schedule = tracto::fetch_schedule(&cfg, &req)
-        .await
-        .map_err(|e| ServerError::InternalError { msg: e.to_string() })?;
-    let calendar = schedule.to_ical(&cfg, &req);
-    let file_path = save_to_cache(&req, calendar)?;
+    let file_path = match look_up_in_cache(&req) {
+        Some(file_path) => file_path,
+        None => {
+            let schedule = tracto::fetch_schedule(&cfg, &req)
+                .await
+                .map_err(|e| ServerError::InternalError { msg: e.to_string() })?;
+            let calendar = schedule.to_ical(&cfg, &req);
+            save_to_cache(&req, calendar)?
+        }
+    };
 
     Ok(actix_files::NamedFile::open(file_path)?)
 }
 
-fn save_to_cache(req: &Request, calendar: Calendar) -> Result<PathBuf, ServerError> {
-    let proj_dirs =
-        directories::ProjectDirs::from(config::QUALIFIER, config::ORG_NAME, config::APP_NAME)
-            .expect("No valid config directory could be retrieved from the operating system");
-    let filename = format!(
+fn gen_filename(req: &Request) -> String {
+    format!(
         "{}-{}-{}-{}{}.ics",
         req.department,
         req.form,
         req.group,
         req.subgroups.join("_"),
         if req.translator { "-t" } else { "" }
-    );
-    let file_path = proj_dirs.cache_dir().join(filename);
+    )
+}
+
+fn get_cache_dir() -> PathBuf {
+    let proj_dirs =
+        directories::ProjectDirs::from(config::QUALIFIER, config::ORG_NAME, config::APP_NAME)
+            .expect("No valid config directory could be retrieved from the operating system");
+
+    proj_dirs.cache_dir().to_owned()
+}
+
+fn save_to_cache(req: &Request, calendar: Calendar) -> Result<PathBuf, ServerError> {
+    let file_path = get_cache_dir().join(gen_filename(req));
 
     let mut file = std::fs::File::create(file_path.clone())?;
     file.write_all(calendar.to_string().as_bytes())?;
 
     Ok(file_path)
+}
+
+fn look_up_in_cache(req: &Request) -> Option<PathBuf> {
+    let file_path = get_cache_dir().join(gen_filename(req));
+
+    if file_path.exists() {
+        Some(file_path)
+    } else {
+        None
+    }
 }
