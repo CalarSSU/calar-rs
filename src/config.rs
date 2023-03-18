@@ -4,10 +4,10 @@ use std::{
     io::{Read, Write},
 };
 
-const QUALIFIER: &str = "dev";
-const APP_NAME: &str = "Calar";
-const ORG_NAME: &str = "calar";
-const CONFIG_FILE: &str = "config.toml";
+pub const QUALIFIER: &str = "dev";
+pub const APP_NAME: &str = "Calar";
+pub const ORG_NAME: &str = "calar";
+pub const CONFIG_FILE: &str = "config.toml";
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
