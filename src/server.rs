@@ -41,11 +41,7 @@ struct OptParams {
     translator: Option<bool>,
 }
 
-pub async fn run_server(cfg: Config, prune: bool) -> std::io::Result<()> {
-    if prune {
-        std::fs::remove_dir_all(get_cache_dir())?;
-    }
-
+pub async fn run_server(cfg: Config) -> std::io::Result<()> {
     let (addr, port) = (cfg.addr.clone(), cfg.port);
 
     actix_web::HttpServer::new(move || {
@@ -118,7 +114,7 @@ fn get_cache_dir() -> PathBuf {
         directories::ProjectDirs::from(config::QUALIFIER, config::ORG_NAME, config::APP_NAME)
             .expect("No valid config directory could be retrieved from the operating system");
 
-    proj_dirs.cache_dir().to_owned()
+    proj_dirs.cache_dir().join("calendars")
 }
 
 fn save_to_cache(req: &Request, calendar: Calendar) -> Result<PathBuf, ServerError> {
@@ -140,4 +136,8 @@ fn look_up_in_cache(req: &Request) -> Option<PathBuf> {
     } else {
         None
     }
+}
+
+pub fn prune_cache() -> std::io::Result<()> {
+    std::fs::remove_dir_all(get_cache_dir())
 }

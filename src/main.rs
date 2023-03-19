@@ -11,8 +11,6 @@ use config::*;
 
 #[derive(Debug, Parser)]
 pub struct Cli {
-    #[arg(long)]
-    prune: bool,
     #[clap(subcommand)]
     command: Command,
 }
@@ -23,6 +21,8 @@ enum Command {
     Single(Request),
     /// Run as web server
     Server,
+    /// Clear all cache
+    Prune,
 }
 
 #[derive(Parser, Debug)]
@@ -47,7 +47,8 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Single(req) => make_single_request(cfg, req).await?,
-        Command::Server { .. } => server::run_server(cfg, cli.prune).await?,
+        Command::Server => server::run_server(cfg).await?,
+        Command::Prune => server::prune_cache()?,
     }
 
     Ok(())
