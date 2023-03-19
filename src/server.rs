@@ -7,7 +7,7 @@ use std::{io::Write, path::PathBuf};
 
 #[derive(Debug, thiserror::Error)]
 enum ServerError {
-    #[error("Internal request: {msg}")]
+    #[error("Internal error: {msg}")]
     InternalError { msg: String },
 
     #[error("Bad request: {msg}")]
@@ -122,7 +122,9 @@ fn get_cache_dir() -> PathBuf {
 }
 
 fn save_to_cache(req: &Request, calendar: Calendar) -> Result<PathBuf, ServerError> {
-    let file_path = get_cache_dir().join(gen_filename(req));
+    let cache_dir = get_cache_dir();
+    std::fs::create_dir_all(cache_dir.clone())?;
+    let file_path = cache_dir.join(gen_filename(req));
 
     let mut file = std::fs::File::create(file_path.clone())?;
     file.write_all(calendar.to_string().as_bytes())?;

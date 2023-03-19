@@ -33,7 +33,7 @@ impl Default for Config {
             app_name: String::from(APP_NAME),
             addr: String::from("0.0.0.0"),
             port: 1414,
-            tracto_prefix: String::from("https://scribabot.tk/api/v1.0"),
+            tracto_prefix: String::from("https://scribaproject.space/api/v1.0/"),
             translator_substr: String::from("(перевод.)"),
             semester: Semester {
                 start_md: (2, 6),
