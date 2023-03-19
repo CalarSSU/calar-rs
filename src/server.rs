@@ -98,7 +98,7 @@ async fn request_cal_handler(
     Ok(actix_files::NamedFile::open(file_path)?)
 }
 
-fn gen_filename(req: &Request) -> String {
+pub fn gen_filename(req: &Request) -> String {
     format!(
         "{}-{}-{}-{}{}.ics",
         req.department,

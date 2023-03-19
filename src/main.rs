@@ -60,14 +60,7 @@ async fn make_single_request(cfg: Config, req: Request) -> Result<()> {
     let schedule = tracto::fetch_schedule(&cfg, &req).await?;
     let calendar = schedule.to_ical(&cfg, &req);
 
-    let mut file = File::create(format!(
-        "{}-{}-{}-{}{}.ics",
-        req.department,
-        req.form,
-        req.group,
-        req.subgroups.join("_"),
-        if req.translator { "-t" } else { "" }
-    ))?;
+    let mut file = File::create(server::gen_filename(&req))?;
     file.write_all(calendar.to_string().as_bytes())?;
 
     Ok(())
