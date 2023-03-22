@@ -11,7 +11,7 @@ impl Schedule {
             let same_subgroup = request
                 .subgroups
                 .contains(&lesson.sub_group.trim().replace(' ', "_").to_string());
-            if (lesson.sub_group.is_empty() || same_subgroup)
+            if (request.subgroups.is_empty() || lesson.sub_group.is_empty() || same_subgroup)
                 && (!lesson.name.contains(&cfg.translator_substr) || request.translator)
             {
                 cal.push(lesson.to_event(cfg));

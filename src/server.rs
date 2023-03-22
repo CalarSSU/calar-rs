@@ -1,4 +1,8 @@
-use crate::{config, tracto, validate_request, Config, Request};
+use crate::{
+    config,
+    tracto::{self, find_subgroups},
+    validate_request, Config, Request,
+};
 use icalendar::Calendar;
 
 use actix_web::{get, web};
@@ -48,6 +52,7 @@ pub async fn run_server(cfg: Config) -> std::io::Result<()> {
         actix_web::App::new()
             .app_data(web::Data::new(cfg.clone()))
             .service(index_handler)
+            .service(subgroups_handler)
             .service(request_cal_handler)
     })
     .bind((addr, port))?
@@ -58,6 +63,29 @@ pub async fn run_server(cfg: Config) -> std::io::Result<()> {
 #[get("/")]
 async fn index_handler(cfg: web::Data<Config>) -> String {
     format!("{} is up!", cfg.app_name)
+}
+
+#[get("/subgroups/{department}/{form}/{group}")]
+async fn subgroups_handler(
+    cfg: web::Data<Config>,
+    path: web::Path<(String, String, String)>,
+) -> Result<String, ServerError> {
+    let (department, form, group) = path.into_inner();
+    let req = Request {
+        department,
+        form,
+        group,
+        translator: false,
+        subgroups: Vec::new(),
+    };
+
+    let schedule = tracto::fetch_schedule(&cfg, &req)
+        .await
+        .map_err(|e| ServerError::InternalError { msg: e.to_string() })?;
+
+    let subgroups = find_subgroups(&schedule);
+
+    Ok(serde_json::to_string(&subgroups).unwrap_or("[]".to_string()))
 }
 
 #[get("/{department}/{form}/{group}")]
