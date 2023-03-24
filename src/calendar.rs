@@ -10,7 +10,7 @@ impl Schedule {
         for lesson in &self.lessons {
             let same_subgroup = request
                 .subgroups
-                .contains(&lesson.sub_group.trim().replace(' ', "_").to_string());
+                .contains(&lesson.sub_group.trim().to_string());
             if (request.subgroups.is_empty() || lesson.sub_group.is_empty() || same_subgroup)
                 && (!lesson.name.contains(&cfg.translator_substr) || request.translator)
             {

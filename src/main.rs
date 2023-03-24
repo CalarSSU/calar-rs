@@ -66,20 +66,28 @@ async fn make_single_request(cfg: Config, req: Request) -> Result<()> {
     Ok(())
 }
 
-pub async fn validate_request(cfg: &Config, request: &Request) -> Result<()> {
+pub async fn validate_request(cfg: &Config, req: &Request) -> Result<()> {
     let available_departments: Vec<String> = tracto::fetch_departments(cfg)
         .await?
         .departments_list
         .into_iter()
         .map(|x| x.url)
         .collect();
+    let schedule = tracto::fetch_schedule(&cfg, &req)
+        .await?;
 
-    if !available_departments.contains(&request.department) {
+    let subgroups = tracto::find_subgroups(&schedule);
+
+    if !available_departments.contains(&req.department) {
         return Err(String::from("Incorrect department").into());
     }
 
-    if !vec!["full", "extramural"].contains(&request.form.as_str()) {
+    if !vec!["full", "extramural"].contains(&req.form.as_str()) {
         return Err(String::from("Incorrect education form").into());
+    }
+
+    if req.subgroups.iter().any(|x| !subgroups.contains(x)) {
+        return Err(String::from("Incorrect subgroup(s)").into());
     }
 
     Ok(())
