@@ -10,6 +10,7 @@ mod tracto;
 use config::*;
 
 #[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[clap(subcommand)]
     command: Command,
@@ -26,7 +27,6 @@ enum Command {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
 pub struct Request {
     #[arg(short, long)]
     pub department: String,
