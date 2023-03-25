@@ -22,7 +22,7 @@ pub async fn fetch_departments(cfg: &Config) -> Result<DepartmentsList> {
     Ok(departments)
 }
 
-pub fn _find_subgroups(schedule: &Schedule) -> Vec<String> {
+pub fn find_subgroups(schedule: &Schedule) -> Vec<String> {
     let mut subgroups = schedule
         .lessons
         .iter()

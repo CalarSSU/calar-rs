@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{Read, Write},
+    path::PathBuf,
 };
 
 pub const QUALIFIER: &str = "dev";
@@ -43,11 +44,17 @@ impl Default for Config {
     }
 }
 
+fn get_config_dir() -> PathBuf {
+    let proj_dirs = directories::ProjectDirs::from(QUALIFIER, ORG_NAME, APP_NAME)
+        .expect("No valid config directory could be retrieved from the operating system");
+
+    proj_dirs.config_dir().to_owned()
+}
+
 impl Config {
     pub fn from_config_dir() -> Result<Config> {
-        let proj_dirs = directories::ProjectDirs::from(QUALIFIER, ORG_NAME, APP_NAME)
-            .expect("No valid config directory could be retrieved from the operating system");
-        let config_file = proj_dirs.config_dir().join(CONFIG_FILE);
+        let config_dir = get_config_dir();
+        let config_file = config_dir.join(CONFIG_FILE);
 
         let mut config_file = match File::open(config_file) {
             Ok(file) => file,
@@ -67,10 +74,8 @@ impl Config {
     pub fn dump_to_config_dir(&self) -> Result<()> {
         let serialized = toml::to_string(self)?;
 
-        let proj_dirs = directories::ProjectDirs::from(QUALIFIER, ORG_NAME, APP_NAME)
-            .expect("No valid config directory could be retrieved from the operating system");
-        let config_dir = proj_dirs.config_dir();
-        std::fs::create_dir_all(config_dir)?;
+        let config_dir = get_config_dir();
+        std::fs::create_dir_all(config_dir.clone())?;
         let config_file = config_dir.join(CONFIG_FILE);
 
         let mut config_file = File::create(config_file)?;
