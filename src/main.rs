@@ -1,4 +1,6 @@
 use clap::{Parser, Subcommand};
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
 use std::{fs::File, io::Write};
 
 mod calendar;
@@ -42,6 +44,11 @@ pub struct Request {
 
 #[actix_web::main]
 async fn main() -> Result<()> {
+    SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .init()
+        .unwrap();
+
     let cfg = Config::from_config_dir()?;
     let cli = Cli::parse();
 

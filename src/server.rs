@@ -5,7 +5,7 @@ use crate::{
 };
 use icalendar::Calendar;
 
-use actix_web::{get, web};
+use actix_web::{get, middleware::Logger, web};
 use serde::Deserialize;
 use std::{io::Write, path::PathBuf};
 
@@ -50,6 +50,7 @@ pub async fn run_server(cfg: Config) -> std::io::Result<()> {
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
+            .wrap(Logger::new("%a %{User-Agent}i %r %s"))
             .app_data(web::Data::new(cfg.clone()))
             .service(index_handler)
             .service(subgroups_handler)
