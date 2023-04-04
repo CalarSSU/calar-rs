@@ -73,8 +73,7 @@ pub async fn validate_request(cfg: &Config, req: &Request) -> Result<()> {
         .into_iter()
         .map(|x| x.url)
         .collect();
-    let schedule = tracto::fetch_schedule(&cfg, &req)
-        .await?;
+    let schedule = tracto::fetch_schedule(cfg, req).await?;
 
     let subgroups = tracto::find_subgroups(&schedule);
 
