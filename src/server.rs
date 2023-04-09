@@ -1,21 +1,21 @@
 use crate::{
     config,
-    tracto::{self, find_subgroups},
-    validate_request, Config, Request,
+    tracto::{self, find_subgroups, validate_request},
+    Config, Request,
 };
 use icalendar::Calendar;
 
 use actix_web::{get, middleware::Logger, web};
 use serde::Deserialize;
-use std::{io::Write, path::PathBuf};
+use std::{io::Write, path::PathBuf, process::ExitCode};
 
 #[derive(Debug, thiserror::Error)]
 enum ServerError {
-    #[error("Internal error: {msg}")]
-    InternalError { msg: String },
+    #[error("Internal error: {0}")]
+    InternalError(String),
 
-    #[error("Bad request: {msg}")]
-    BadRequest { msg: String },
+    #[error("Bad request: {0}")]
+    BadRequest(String),
 }
 
 impl actix_web::error::ResponseError for ServerError {
@@ -35,7 +35,7 @@ impl actix_web::error::ResponseError for ServerError {
 
 impl From<std::io::Error> for ServerError {
     fn from(e: std::io::Error) -> Self {
-        Self::InternalError { msg: e.to_string() }
+        Self::InternalError(e.to_string())
     }
 }
 
@@ -45,20 +45,31 @@ struct OptParams {
     translator: Option<bool>,
 }
 
-pub async fn run_server(cfg: Config) -> std::io::Result<()> {
+pub async fn run_server(cfg: Config) -> ExitCode {
     let (addr, port) = (cfg.addr.clone(), cfg.port);
 
-    actix_web::HttpServer::new(move || {
+    let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
-            .wrap(Logger::new("%a %{User-Agent}i %r %s"))
+            .wrap(Logger::new("%{r}a %r %s | %T sec."))
             .app_data(web::Data::new(cfg.clone()))
             .service(index_handler)
             .service(subgroups_handler)
             .service(request_cal_handler)
     })
-    .bind((addr, port))?
-    .run()
-    .await
+    .bind((addr, port));
+
+    if let Err(e) = server {
+        eprintln!("Cannot start server: {e}");
+        return ExitCode::FAILURE;
+    }
+    let server = server.unwrap();
+
+    if let Err(e) = server.run().await {
+        eprintln!("Cannot start server: {e}");
+        return ExitCode::FAILURE;
+    }
+
+    ExitCode::SUCCESS
 }
 
 #[get("/")]
@@ -82,7 +93,7 @@ async fn subgroups_handler(
 
     let schedule = tracto::fetch_schedule(&cfg, &req)
         .await
-        .map_err(|e| ServerError::InternalError { msg: e.to_string() })?;
+        .map_err(|e| ServerError::InternalError(e.to_string()))?;
 
     let subgroups = find_subgroups(&schedule);
 
@@ -110,7 +121,7 @@ async fn request_cal_handler(
     };
 
     if let Err(e) = validate_request(&cfg, &req).await {
-        return Err(ServerError::BadRequest { msg: e.to_string() });
+        return Err(ServerError::BadRequest(e.to_string()));
     };
 
     let file_path = match look_up_in_cache(&req) {
@@ -118,7 +129,7 @@ async fn request_cal_handler(
         None => {
             let schedule = tracto::fetch_schedule(&cfg, &req)
                 .await
-                .map_err(|e| ServerError::InternalError { msg: e.to_string() })?;
+                .map_err(|e| ServerError::InternalError(e.to_string()))?;
             let calendar = schedule.to_ical(&cfg, &req);
             save_to_cache(&req, calendar)?
         }
@@ -167,6 +178,9 @@ fn look_up_in_cache(req: &Request) -> Option<PathBuf> {
     }
 }
 
-pub fn prune_cache() -> std::io::Result<()> {
-    std::fs::remove_dir_all(get_cache_dir())
+pub fn prune_cache() -> ExitCode {
+    match std::fs::remove_dir_all(get_cache_dir()) {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(_) => ExitCode::FAILURE,
+    }
 }
