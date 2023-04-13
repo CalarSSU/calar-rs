@@ -13,12 +13,11 @@ actix-web = { version = "4.3.1", features = ["rustls"] }
 chrono = "0.4.23"
 chrono-tz = "0.8.1"
 clap = { version = "4.1.8", features = ["derive"] }
-directories = "4.0.1"
+directories = "5.0.0"
 icalendar = { version = "0.15.4", features = ["chrono-tz"] }
 reqwest = { version = "0.11.14", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.94"
-toml = "0.7.2"
 log = { version = "^0.4.17", features = ["std"] }
 simple_logger = { version = "4.1.0", features = ["colors", "timestamps", "stderr"] }
 thiserror = "1.0.40"
