@@ -108,9 +108,14 @@ async fn request_cal_handler(
 ) -> Result<actix_files::NamedFile, ServerError> {
     let (department, form, group) = path.into_inner();
     let translator = params.translator.unwrap_or(false);
-    let subgroups: Vec<String> = match params.subgroups.clone() {
+    let subgroups: Vec<String> = match &params.subgroups {
         None => Vec::new(),
-        Some(s) => serde_json::from_str(s.as_str()).unwrap(),
+        Some(s) => match serde_json::from_str(s.as_str()) {
+            Ok(v) => v,
+            Err(e) => return Err(
+                ServerError::BadRequest(format!("Cannot parse subroups: {}", e.to_string()))
+            )
+        },
     };
     let req = Request {
         department,

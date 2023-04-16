@@ -36,5 +36,5 @@ FROM --platform=linux/amd64 scratch AS runtime
 COPY --from=builder /calar/target/x86_64-unknown-linux-musl/release/calar /
 
 # Run the server!
-CMD ["/calar", "server"]
+ENTRYPOINT ["/calar", "server"]
 
