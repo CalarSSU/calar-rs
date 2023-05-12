@@ -74,7 +74,7 @@ async fn make_single_request(cfg: Config, req: Request) -> ExitCode {
     };
     let calendar = schedule.to_ical(&cfg, &req);
 
-    let mut file = match File::create(server::gen_filename(&req)) {
+    let mut file = match File::create(server::gen_filename::<models::Schedule>(&req)) {
         Ok(file) => file,
         Err(e) => {
             eprintln!("Cannot create file: {e}");

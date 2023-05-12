@@ -53,6 +53,15 @@ pub async fn fetch_departments(cfg: &Config) -> RequestResult<DepartmentsList> {
     make_request::<DepartmentsList>(url).await
 }
 
+pub async fn fetch_exam(cfg: &Config, request: &Request) -> RequestResult<ExamList>{
+    let url = format!(
+        "{}/exam/{}/{}/{}",
+        cfg.tracto_prefix, request.form, request.department, request.group
+    );
+
+    make_request::<ExamList>(url).await
+}
+
 pub fn find_subgroups(schedule: &Schedule) -> Vec<String> {
     let mut subgroups = schedule
         .lessons
