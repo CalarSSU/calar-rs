@@ -55,6 +55,7 @@ pub async fn run_server(cfg: Config) -> ExitCode {
             .service(index_handler)
             .service(subgroups_handler)
             .service(request_cal_handler)
+            .service(another_request)
     })
     .bind((addr, port));
 
@@ -141,6 +142,13 @@ async fn request_cal_handler(
     };
 
     Ok(actix_files::NamedFile::open(file_path)?)
+}
+
+#[get("/{tail:.*}")]
+async fn another_request(path: web::Path<String>) -> String {
+    let tail = path.into_inner();
+    log::error!("Another request {}", tail);
+    format!("Aboba")
 }
 
 pub fn gen_filename(req: &Request) -> String {

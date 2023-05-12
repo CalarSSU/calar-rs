@@ -74,10 +74,12 @@ pub async fn validate_request(cfg: &Config, req: &Request) -> RequestResult<()> 
         .collect();
 
     if !available_departments.contains(&req.department) {
+        log::error!("Incorrect department: {}.",&req.department);
         return Err(RequestError("Incorrect department".into()));
     }
 
     if !vec!["full", "extramural"].contains(&req.form.as_str()) {
+        log::error!("Incorrect education form: {}.",&req.form.as_str());
         return Err(RequestError(
             "Incorrect education form. Should be \"full\" or \"extramural\"".into(),
         ));
@@ -86,6 +88,7 @@ pub async fn validate_request(cfg: &Config, req: &Request) -> RequestResult<()> 
     let schedule = fetch_schedule(cfg, req).await?;
     let subgroups = find_subgroups(&schedule);
     if req.subgroups.iter().any(|x| !subgroups.contains(x)) {
+        log::error!("Incorrect subgroup(s).");
         return Err(RequestError("Incorrect subgroup(s)".into()));
     }
 
