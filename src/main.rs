@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
-use std::{fs::File, io::Write};
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
+use std::{fs::File, io::Write, process::ExitCode};
 
 mod calendar;
 mod config;
@@ -41,53 +43,48 @@ pub struct Request {
 }
 
 #[actix_web::main]
-async fn main() -> Result<()> {
-    let cfg = Config::from_config_dir()?;
+async fn main() -> ExitCode {
+    SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .init()
+        .unwrap();
+
+    let cfg = Config::default();
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Single(req) => make_single_request(cfg, req).await?,
-        Command::Server => server::run_server(cfg).await?,
-        Command::Prune => server::prune_cache()?,
+        Command::Single(req) => make_single_request(cfg, req).await,
+        Command::Server => server::run_server(cfg).await,
+        Command::Prune => server::prune_cache(),
     }
-
-    Ok(())
 }
 
-async fn make_single_request(cfg: Config, req: Request) -> Result<()> {
-    validate_request(&cfg, &req).await?;
+async fn make_single_request(cfg: Config, req: Request) -> ExitCode {
+    if let Err(e) = tracto::validate_request(&cfg, &req).await {
+        eprintln!("Bad request: {e}");
+        return ExitCode::FAILURE;
+    }
 
-    let schedule = tracto::fetch_schedule(&cfg, &req).await?;
+    let schedule = match tracto::fetch_schedule(&cfg, &req).await {
+        Ok(schedule) => schedule,
+        Err(e) => {
+            eprintln!("Cannot fetch schedule: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
     let calendar = schedule.to_ical(&cfg, &req);
 
-    let mut file = File::create(server::gen_filename(&req))?;
-    file.write_all(calendar.to_string().as_bytes())?;
-
-    Ok(())
-}
-
-pub async fn validate_request(cfg: &Config, req: &Request) -> Result<()> {
-    let available_departments: Vec<String> = tracto::fetch_departments(cfg)
-        .await?
-        .departments_list
-        .into_iter()
-        .map(|x| x.url)
-        .collect();
-    let schedule = tracto::fetch_schedule(cfg, req).await?;
-
-    let subgroups = tracto::find_subgroups(&schedule);
-
-    if !available_departments.contains(&req.department) {
-        return Err(String::from("Incorrect department").into());
+    let mut file = match File::create(server::gen_filename::<models::Schedule>(&req)) {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("Cannot create file: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    if let Err(e) = file.write_all(calendar.to_string().as_bytes()) {
+        eprintln!("Cannot write to file: {e}");
+        return ExitCode::FAILURE;
     }
 
-    if !vec!["full", "extramural"].contains(&req.form.as_str()) {
-        return Err(String::from("Incorrect education form").into());
-    }
-
-    if req.subgroups.iter().any(|x| !subgroups.contains(x)) {
-        return Err(String::from("Incorrect subgroup(s)").into());
-    }
-
-    Ok(())
+    ExitCode::SUCCESS
 }

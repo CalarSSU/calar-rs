@@ -87,3 +87,46 @@ impl Lesson {
             .done()
     }
 }
+
+impl ExamList {
+    pub fn to_ical(&self) -> Calendar {
+        let mut calendar = Calendar::new();
+        for exam in &self.exam_period_events {
+            calendar.push(exam.to_event());
+        }
+        calendar.done()
+    }
+}
+
+impl ExamEvent {
+    fn to_event(&self) -> Event {
+        let cur_year = self.year.replace("г.", "").parse::<i32>().unwrap();
+        let event_start = Saratov
+            .with_ymd_and_hms(
+                cur_year,
+                self.month.number,
+                self.day,
+                self.hour,
+                self.minute,
+                0,
+            )
+            .unwrap();
+        let event_end = Saratov
+            .with_ymd_and_hms(
+                cur_year,
+                self.month.number,
+                self.day,
+                23,
+                59,
+                0,
+            )
+            .unwrap();
+        Event::new()
+            .starts(CalendarDateTime::from_date_time(event_start))
+            .ends(CalendarDateTime::from_date_time(event_end))
+            .summary(self.summary().as_str())
+            .description(self.teacher.full().as_str())
+            .location(self.place.as_str())
+            .done()
+    }
+}

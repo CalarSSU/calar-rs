@@ -95,3 +95,47 @@ impl Teacher {
 pub struct DepartmentsList {
     pub departments_list: Vec<Department>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExamList {
+    pub exam_period_events: Vec<ExamEvent>,
+    pub student_group: StudentGroup,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExamEvent {
+    pub id: u32,
+    pub exam_period_event_type: String,
+    pub day: u32,
+    pub month: Month,
+    pub year: String,
+    pub hour: u32,
+    pub minute: u32,
+    pub subject_name: String,
+    pub teacher: Teacher,
+    pub student_group: StudentGroup,
+    pub place: String,
+}
+
+impl ExamEvent {
+    pub fn summary(&self) -> String {
+        let type_letter = match self.exam_period_event_type.as_str() {
+            "CONSULTATION" => "Консультация",
+            "EXAM" => "Экзамен",
+            "MIDTERM_WITH_MARK" => "Зачет с оценкой",
+            _ => "Зачет",
+        };
+        format!("{} ({})", self.subject_name, type_letter)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Month {
+    pub number: u32,
+    pub rus_nominative: String,
+    pub rus_genitive: String,
+    pub eng: String,
+}

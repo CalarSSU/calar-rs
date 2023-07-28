@@ -1,25 +1,65 @@
-use crate::{models::*, Config, Request, Result};
+use crate::{models::*, Config, Request};
 
-pub async fn fetch_schedule(cfg: &Config, request: &Request) -> Result<Schedule> {
+#[derive(Debug)]
+pub struct RequestError(String);
+type RequestResult<T> = Result<T, RequestError>;
+
+impl std::fmt::Display for RequestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<reqwest::Error> for RequestError {
+    fn from(e: reqwest::Error) -> RequestError {
+        Self(e.to_string())
+    }
+}
+
+async fn make_request<T>(url: String) -> RequestResult<T>
+where
+    T: for<'a> serde::Deserialize<'a>,
+{
     let client = reqwest::Client::new();
+
+    let response = client.get(&url).send().await;
+    if let Err(e) = &response {
+        log::error!("Cannot make request to {url}: {e}")
+    }
+
+    let body = response?.json::<T>().await;
+    if let Err(_) = &body {
+        log::error!(
+            "Cannot deserialize response from {url} into {}",
+            std::any::type_name::<T>()
+        )
+    }
+
+    body.map_err(|e| e.into())
+}
+
+pub async fn fetch_schedule(cfg: &Config, request: &Request) -> RequestResult<Schedule> {
     let url = format!(
         "{}/schedule/{}/{}/{}",
         cfg.tracto_prefix, request.form, request.department, request.group
     );
-    let schedule = client.get(url).send().await?.json::<Schedule>().await?;
 
-    Ok(schedule)
+    make_request::<Schedule>(url).await
 }
 
-pub async fn fetch_departments(cfg: &Config) -> Result<DepartmentsList> {
-    let client = reqwest::Client::new();
-    let departments = client
-        .get(format!("{}/departments", cfg.tracto_prefix))
-        .send()
-        .await?
-        .json::<DepartmentsList>()
-        .await?;
-    Ok(departments)
+pub async fn fetch_departments(cfg: &Config) -> RequestResult<DepartmentsList> {
+    let url = format!("{}/departments", cfg.tracto_prefix);
+
+    make_request::<DepartmentsList>(url).await
+}
+
+pub async fn fetch_exam(cfg: &Config, request: &Request) -> RequestResult<ExamList>{
+    let url = format!(
+        "{}/exam/{}/{}/{}",
+        cfg.tracto_prefix, request.form, request.department, request.group
+    );
+
+    make_request::<ExamList>(url).await
 }
 
 pub fn find_subgroups(schedule: &Schedule) -> Vec<String> {
@@ -34,19 +74,49 @@ pub fn find_subgroups(schedule: &Schedule) -> Vec<String> {
     subgroups
 }
 
+pub async fn validate_request(cfg: &Config, req: &Request) -> RequestResult<()> {
+    let available_departments: Vec<String> = fetch_departments(cfg)
+        .await?
+        .departments_list
+        .into_iter()
+        .map(|x| x.url)
+        .collect();
+
+    if !available_departments.contains(&req.department) {
+        log::error!("Incorrect department: {}.",&req.department);
+        return Err(RequestError("Incorrect department".into()));
+    }
+
+    if !vec!["full", "extramural"].contains(&req.form.as_str()) {
+        log::error!("Incorrect education form: {}.",&req.form.as_str());
+        return Err(RequestError(
+            "Incorrect education form. Should be \"full\" or \"extramural\"".into(),
+        ));
+    }
+
+    let schedule = fetch_schedule(cfg, req).await?;
+    let subgroups = find_subgroups(&schedule);
+    if req.subgroups.iter().any(|x| !subgroups.contains(x)) {
+        log::error!("Incorrect subgroup(s).");
+        return Err(RequestError("Incorrect subgroup(s)".into()));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[actix_web::test]
-    async fn try_fetch_departments() -> Result<()> {
+    async fn try_fetch_departments() -> RequestResult<()> {
         let cfg = Config::default();
         fetch_departments(&cfg).await?;
         Ok(())
     }
 
     #[actix_web::test]
-    async fn try_fetch_schedule_1() -> Result<()> {
+    async fn try_fetch_schedule_1() -> RequestResult<()> {
         let cfg = Config::default();
         let request = Request {
             department: String::from("knt"),
@@ -60,7 +130,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn try_fetch_schedule_2() -> Result<()> {
+    async fn try_fetch_schedule_2() -> RequestResult<()> {
         let cfg = Config::default();
         let request = Request {
             department: String::from("knt"),
@@ -74,7 +144,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn try_fetch_schedule_3() -> Result<()> {
+    async fn try_fetch_schedule_3() -> RequestResult<()> {
         let cfg = Config::default();
         let request = Request {
             department: String::from("knt"),
