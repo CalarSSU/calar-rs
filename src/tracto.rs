@@ -28,7 +28,7 @@ where
     }
 
     let body = response?.json::<T>().await;
-    if let Err(_) = &body {
+    if body.is_err() {
         log::error!(
             "Cannot deserialize response from {url} into {}",
             std::any::type_name::<T>()
@@ -53,7 +53,7 @@ pub async fn fetch_departments(cfg: &Config) -> RequestResult<DepartmentsList> {
     make_request::<DepartmentsList>(url).await
 }
 
-pub async fn fetch_exam(cfg: &Config, request: &Request) -> RequestResult<ExamList>{
+pub async fn fetch_exam(cfg: &Config, request: &Request) -> RequestResult<ExamList> {
     let url = format!(
         "{}/exam/{}/{}/{}",
         cfg.tracto_prefix, request.form, request.department, request.group
@@ -75,20 +75,20 @@ pub fn find_subgroups(schedule: &Schedule) -> Vec<String> {
 }
 
 pub async fn validate_request(cfg: &Config, req: &Request) -> RequestResult<()> {
-    let available_departments: Vec<String> = fetch_departments(cfg)
+    let available_departments = fetch_departments(cfg)
         .await?
         .departments_list
         .into_iter()
         .map(|x| x.url)
-        .collect();
+        .collect::<Vec<_>>();
 
     if !available_departments.contains(&req.department) {
-        log::error!("Incorrect department: {}.",&req.department);
+        log::error!("Incorrect department: {}.", &req.department);
         return Err(RequestError("Incorrect department".into()));
     }
 
     if !vec!["full", "extramural"].contains(&req.form.as_str()) {
-        log::error!("Incorrect education form: {}.",&req.form.as_str());
+        log::error!("Incorrect education form: {}.", &req.form.as_str());
         return Err(RequestError(
             "Incorrect education form. Should be \"full\" or \"extramural\"".into(),
         ));

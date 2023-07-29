@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub const QUALIFIER: &str = "dev";
 pub const APP_NAME: &str = "Calar";
 pub const ORG_NAME: &str = "calar";
+pub const VERSION: &str = "0.1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {

@@ -3,6 +3,7 @@ use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::{fs::File, io::Write, process::ExitCode};
 
+mod cache;
 mod calendar;
 mod config;
 mod models;
@@ -55,7 +56,10 @@ async fn main() -> ExitCode {
     match cli.command {
         Command::Single(req) => make_single_request(cfg, req).await,
         Command::Server => server::run_server(cfg).await,
-        Command::Prune => server::prune_cache(),
+        Command::Prune => match cache::prune_cache() {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(_) => ExitCode::FAILURE,
+        },
     }
 }
 
@@ -74,7 +78,7 @@ async fn make_single_request(cfg: Config, req: Request) -> ExitCode {
     };
     let calendar = schedule.to_ical(&cfg, &req);
 
-    let mut file = match File::create(server::gen_filename::<models::Schedule>(&req)) {
+    let mut file = match File::create(cache::gen_filename::<models::Schedule>(&req)) {
         Ok(file) => file,
         Err(e) => {
             eprintln!("Cannot create file: {e}");

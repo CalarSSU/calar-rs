@@ -1,6 +1,6 @@
 use crate::{config::*, models::*, Request};
 
-use chrono::prelude::*;
+use chrono::{prelude::*, Duration};
 use chrono_tz::Europe::Saratov;
 use icalendar::*;
 
@@ -111,16 +111,7 @@ impl ExamEvent {
                 0,
             )
             .unwrap();
-        let event_end = Saratov
-            .with_ymd_and_hms(
-                cur_year,
-                self.month.number,
-                self.day,
-                23,
-                59,
-                0,
-            )
-            .unwrap();
+        let event_end = event_start + Duration::hours(2);
         Event::new()
             .starts(CalendarDateTime::from_date_time(event_start))
             .ends(CalendarDateTime::from_date_time(event_end))
